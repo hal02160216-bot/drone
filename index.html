@@ -19,45 +19,73 @@
 <div id="map"></div>
 
 <script>
-  mapboxgl.accessToken = 'pk.eyJ1IjoiaGFsMDExMDAyMTYiLCJhIjoiY21vaXVhbzR3MDR4ajMxcXdzZGt1eW1kNyJ9.Lqr4SQTNHFKB1XsNjDuKwQ';
+mapboxgl.accessToken = 'pk.eyJ1IjoiaGFsMDExMDAyMTYiLCJhIjoiY21vaXVhbzR3MDR4ajMxcXdzZGt1eW1kNyJ9.Lqr4SQTNHFKB1XsNjDuKwQ';
 
-  const map = new mapboxgl.Map({
-    container: 'map',
-    style: 'mapbox://styles/mapbox/streets-v11',
-    center: [139.767, 35.681],
-    zoom: 12
+const map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/mapbox/streets-v11',
+  center: [139.767, 35.681],
+  zoom: 12
+});
+
+// 現在地
+navigator.geolocation.getCurrentPosition(position => {
+  const lng = position.coords.longitude;
+  const lat = position.coords.latitude;
+
+  map.setCenter([lng, lat]);
+  map.setZoom(15);
+
+  new mapboxgl.Marker().setLngLat([lng, lat]).addTo(map);
+});
+
+// 🔴 サンプルDIDエリア（東京駅周辺）
+map.on('load', () => {
+  map.addSource('did-area', {
+    type: 'geojson',
+    data: {
+      type: 'Feature',
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [139.75, 35.67],
+          [139.78, 35.67],
+          [139.78, 35.70],
+          [139.75, 35.70],
+          [139.75, 35.67]
+        ]]
+      }
+    }
   });
 
-  // 現在地取得
-  navigator.geolocation.getCurrentPosition(position => {
-    const lng = position.coords.longitude;
-    const lat = position.coords.latitude;
-
-    map.setCenter([lng, lat]);
-    map.setZoom(15);
-
-    new mapboxgl.Marker()
-      .setLngLat([lng, lat])
-      .addTo(map);
+  map.addLayer({
+    id: 'did-layer',
+    type: 'fill',
+    source: 'did-area',
+    paint: {
+      'fill-color': '#ff0000',
+      'fill-opacity': 0.3
+    }
   });
+});
 
-  // 👇 追加：タップで判定ポップアップ
-  map.on('click', (e) => {
-    const lng = e.lngLat.lng;
-    const lat = e.lngLat.lat;
+// クリック判定
+map.on('click', (e) => {
+  const lng = e.lngLat.lng;
+  const lat = e.lngLat.lat;
 
-    // 仮判定（あとでDIDに置き換える）
-    const result = "⚠ 要確認エリア（仮）";
+  // 簡易判定（サンプル範囲）
+  let result = "🟢 飛行OK（目安）";
 
-    new mapboxgl.Popup()
-      .setLngLat([lng, lat])
-      .setHTML(`
-        <h3>${result}</h3>
-        <p>緯度: ${lat.toFixed(5)}<br>経度: ${lng.toFixed(5)}</p>
-      `)
-      .addTo(map);
-  });
+  if (lng > 139.75 && lng < 139.78 && lat > 35.67 && lat < 35.70) {
+    result = "🔴 DIDエリア → 要許可";
+  }
 
+  new mapboxgl.Popup()
+    .setLngLat([lng, lat])
+    .setHTML(`<h3>${result}</h3>`)
+    .addTo(map);
+});
 </script>
 </body>
 </html>
